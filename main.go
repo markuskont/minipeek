@@ -90,7 +90,6 @@ func main() {
 	flush := time.NewTicker(10 * time.Second)
 	bulk := outputs.NewBulk([]string{"http://localhost:9200"}, nil)
 
-	sent := 0
 	all := 0
 
 	go func() {
@@ -114,6 +113,7 @@ func main() {
 				2: "minor",
 				3: "informational",
 			}
+			sent := 0
 		loop:
 			for {
 				select {
@@ -171,7 +171,10 @@ func main() {
 						sent++
 					}
 				case <-report.C:
-					fmt.Fprintf(os.Stdout, "Worker %d sent %d alerts to alerta\n", id, sent)
+					if sent > 0 {
+						fmt.Fprintf(os.Stdout, "Worker %d sent %d alerts to alerta\n", id, sent)
+					}
+					sent = 0
 				}
 			}
 		}(i)
@@ -180,7 +183,7 @@ func main() {
 		select {
 		case <-flush.C:
 			bulk.Flush()
-			sent = 0
+			fmt.Fprintf(os.Stdout, "Dumped %d events to elastic \n", all)
 			all = 0
 		}
 	}
